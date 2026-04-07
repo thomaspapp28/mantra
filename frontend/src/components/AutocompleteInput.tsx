@@ -1,5 +1,5 @@
 import { useCallback, useId, useRef, useState } from "react";
-import { Alert, Box, CircularProgress, Paper, TextField, Typography } from "@mui/material";
+import { Alert, CircularProgress, TextField } from "@mui/material";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { SuggestionsList } from "./SuggestionsList";
 
@@ -51,18 +51,12 @@ export function AutocompleteInput() {
   const activeDescendant = activeIndex >= 0 ? `${listboxId}-option-${activeIndex}` : undefined;
 
   return (
-    <Paper elevation={0} className="relative w-full max-w-2xl mx-auto p-0">
-      <Typography
-        component="label"
-        htmlFor={`${uid}-input`}
-        variant="body2"
-        className="block mb-2"
-        sx={{ fontWeight: 500, color: "text.secondary" }}
-      >
+    <div className="relative w-full max-w-2xl mx-auto">
+      <label htmlFor={`${uid}-input`} className="block mb-2 text-sm font-medium text-gray-600">
         Start typing to see completions
-      </Typography>
+      </label>
 
-      <Box className="relative">
+      <div className="relative">
         <TextField
           inputRef={inputRef}
           id={`${uid}-input`}
@@ -78,7 +72,7 @@ export function AutocompleteInput() {
           spellCheck={false}
           slotProps={{
             htmlInput: {
-              role: "combobox",
+              role: "combobox" as const,
               "aria-autocomplete": "list" as const,
               "aria-expanded": showList,
               "aria-controls": showList ? listboxId : undefined,
@@ -97,11 +91,11 @@ export function AutocompleteInput() {
         />
 
         {isLoading && (
-          <Box className="absolute right-3 top-3 pointer-events-none" role="status" aria-label="Loading">
+          <div className="absolute right-3 top-3 pointer-events-none" role="status" aria-label="Loading">
             <CircularProgress size={20} thickness={4} />
-          </Box>
+          </div>
         )}
-      </Box>
+      </div>
 
       {error && (
         <Alert severity="error" sx={{ mt: 1.5, borderRadius: "10px" }}>
@@ -119,6 +113,6 @@ export function AutocompleteInput() {
           onHover={setActiveIndex}
         />
       )}
-    </Paper>
+    </div>
   );
 }

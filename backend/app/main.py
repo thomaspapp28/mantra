@@ -3,13 +3,14 @@ import logging
 import re
 from contextlib import asynccontextmanager
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import get_accepted, init_db, save_accepted
 from .dictionary import get_word_completions, load_dictionary
 from .llm import llm_completion
-from .models import CompletionRequest, CompletionResponse, CompletionType, ErrorResponse
+from .models import CompletionRequest, CompletionResponse, CompletionType
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ _NUMBERED_RE = re.compile(r"^\d+[\.\)]\s*")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    load_dotenv()
     logging.basicConfig(level=logging.INFO)
     await init_db()
     n = load_dictionary()
@@ -53,7 +55,7 @@ async def _get_sentence_completions(text: str, needed: int) -> list[str]:
     seen: set[str] = set()
 
     for attempt in range(MAX_LLM_RETRIES):
-        if needed - len(collected) <= 0:
+        if len(collected) >= needed:
             break
         try:
             raw = await asyncio.wait_for(
@@ -74,24 +76,19 @@ async def _get_sentence_completions(text: str, needed: int) -> list[str]:
     return collected
 
 
-def _merge_dedup(*lists: list[str], limit: int = MAX_COMPLETIONS) -> list[str]:
+def _merge(accepted: list[str], fresh: list[str], limit: int = MAX_COMPLETIONS) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
-    for lst in lists:
-        for item in lst:
-            if item not in seen:
-                seen.add(item)
-                result.append(item)
-                if len(result) >= limit:
-                    return result
+    for item in [*accepted, *fresh]:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+            if len(result) >= limit:
+                return result
     return result
 
 
-@app.get(
-    "/completions",
-    response_model=CompletionResponse,
-    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
-)
+@app.get("/completions", response_model=CompletionResponse)
 async def get_completions(
     text: str = Query(..., min_length=1),
 ) -> CompletionResponse:
@@ -108,7 +105,7 @@ async def get_completions(
             )
 
         llm_results = await _get_sentence_completions(text, MAX_COMPLETIONS - len(accepted))
-        merged = _merge_dedup(accepted, llm_results)
+        merged = _merge(accepted, llm_results)
 
         if len(merged) < MAX_COMPLETIONS:
             raise HTTPException(
@@ -121,7 +118,7 @@ async def get_completions(
     parts = text.split()
     last_word = parts[-1] if parts else text
     word_results = get_word_completions(last_word, limit=MAX_COMPLETIONS)
-    merged = _merge_dedup(accepted, word_results)
+    merged = _merge(accepted, word_results)
 
     return CompletionResponse(completions=merged, completion_type=comp_type, text=text)
 

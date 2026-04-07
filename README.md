@@ -77,6 +77,16 @@ Both backend and frontend use `.env` files for configuration. Copy the provided 
 
 The word list lives at `backend/data/hunspell_US.txt` and is included in the repo. No extra download needed.
 
+## API Docs
+
+FastAPI auto-generates interactive API docs at http://localhost:8000/docs (Swagger UI) when the backend is running.
+
+## Troubleshooting
+
+- **Sentence completions return 500** — LM Studio isn't running or no model is loaded. Start LM Studio, download a small model (e.g. Qwen2.5-1.5B-Instruct), load it, and make sure the local server is listening on port 1234.
+- **Word completions work but sentences don't** — same as above. Word completions use the dictionary file and don't need LM Studio.
+- **Frontend can't connect to backend** — make sure the backend is running on port 8000. The Vite dev server proxies `/api` requests to `localhost:8000` (configured in `vite.config.ts`).
+
 ## How It Works
 
 **Word completions** — triggered when input doesn't end with whitespace. Looks up the last partial word against the dictionary using binary search. Returns up to 5 suffix completions.

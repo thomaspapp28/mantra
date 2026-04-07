@@ -1,22 +1,37 @@
 # Python
 __pycache__/
 *.py[cod]
-*.egg-info/
-*.db
+*.pyo
+.venv/
 venv/
-.env
+*.egg-info/
+dist/
+build/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 
-# Node
+# Environment files
+.env
+*.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Node / Frontend
 node_modules/
 dist/
+.vite/
+coverage/
 
-# Editor / IDE
+# Editor / OS
+.DS_Store
 .idea/
 .vscode/
 *.swp
-*.swo
-
-# OS
-.DS_Store
 Thumbs.db
+
+# Submission artifacts
+*.zip

@@ -22,7 +22,6 @@ def load_dictionary(path: Path | None = None) -> int:
 
 
 def get_word_completions(prefix: str, limit: int = 5) -> list[str]:
-    """Return suffix completions for the given prefix, e.g. 'ha' -> ['ck', 'd', 'lf', ...]"""
     if not _words:
         load_dictionary()
 

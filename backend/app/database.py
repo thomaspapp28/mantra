@@ -1,6 +1,8 @@
 import aiosqlite
 
-_DB_PATH = "completions.db"
+from .config import DATABASE_PATH
+
+_db_path = DATABASE_PATH
 
 _SCHEMA = """\
 CREATE TABLE IF NOT EXISTS accepted_completions (
@@ -13,18 +15,18 @@ CREATE INDEX IF NOT EXISTS idx_accepted_input ON accepted_completions(input_text
 """
 
 
-async def _get_conn() -> aiosqlite.Connection:
-    conn = await aiosqlite.connect(_DB_PATH, timeout=10)
+async def _connect() -> aiosqlite.Connection:
+    conn = await aiosqlite.connect(_db_path, timeout=10)
     await conn.execute("PRAGMA journal_mode=WAL")
     await conn.execute("PRAGMA busy_timeout=5000")
     return conn
 
 
 async def init_db(db_path: str | None = None) -> None:
-    global _DB_PATH
+    global _db_path
     if db_path is not None:
-        _DB_PATH = str(db_path)
-    conn = await _get_conn()
+        _db_path = str(db_path)
+    conn = await _connect()
     try:
         await conn.executescript(_SCHEMA)
         await conn.commit()
@@ -32,8 +34,8 @@ async def init_db(db_path: str | None = None) -> None:
         await conn.close()
 
 
-async def save_accepted_completion(input_text: str, completion: str) -> None:
-    conn = await _get_conn()
+async def save_accepted(input_text: str, completion: str) -> None:
+    conn = await _connect()
     try:
         await conn.execute(
             "INSERT INTO accepted_completions (input_text, completion) VALUES (?, ?)",
@@ -44,9 +46,9 @@ async def save_accepted_completion(input_text: str, completion: str) -> None:
         await conn.close()
 
 
-async def get_accepted_completions(input_text: str, limit: int = 5) -> list[str]:
-    """Most-recently accepted first, deduplicated."""
-    conn = await _get_conn()
+async def get_accepted(input_text: str, limit: int = 5) -> list[str]:
+    """Return previously accepted completions, most-recent first, deduplicated."""
+    conn = await _connect()
     try:
         cursor = await conn.execute(
             "SELECT completion FROM accepted_completions WHERE input_text = ? ORDER BY id DESC",

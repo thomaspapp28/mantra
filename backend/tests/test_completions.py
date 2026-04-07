@@ -2,8 +2,6 @@ from unittest.mock import patch
 from httpx import AsyncClient
 
 
-# -- Word completions --
-
 async def test_word_completion(client: AsyncClient):
     resp = await client.get("/completions", params={"text": "hel"})
     assert resp.status_code == 200
@@ -12,15 +10,13 @@ async def test_word_completion(client: AsyncClient):
     assert 0 < len(data["completions"]) <= 5
 
 
-async def test_word_completion_uses_last_word(client: AsyncClient):
+async def test_word_uses_last_word(client: AsyncClient):
     resp = await client.get("/completions", params={"text": "I want hel"})
     assert resp.status_code == 200
     assert resp.json()["completion_type"] == "word"
 
 
-# -- Sentence completions --
-
-async def test_sentence_completion_returns_five(client: AsyncClient):
+async def test_sentence_returns_five(client: AsyncClient):
     fake = ["store.", "bed.", "restaurant.", "park.", "gym.", "home."]
     with patch("app.main.llm_completion", return_value=fake):
         resp = await client.get("/completions", params={"text": "I want to "})
@@ -44,7 +40,7 @@ async def test_sentence_strips_numbered_prefixes(client: AsyncClient):
     assert all(not c[0].isdigit() for c in data["completions"])
 
 
-async def test_sentence_error_when_llm_keeps_failing(client: AsyncClient):
+async def test_sentence_500_when_llm_keeps_failing(client: AsyncClient):
     with patch("app.main.llm_completion", return_value=["∅"]):
         resp = await client.get("/completions", params={"text": "I want "})
     assert resp.status_code == 500
@@ -73,8 +69,6 @@ async def test_sentence_deduplicates(client: AsyncClient):
     assert len(completions) == len(set(completions))
 
 
-# -- Accepted completions --
-
 async def test_accept_completion(client: AsyncClient):
     resp = await client.post("/completions", json={"text": "hel", "completion": "lo"})
     assert resp.status_code == 201
@@ -90,22 +84,18 @@ async def test_accepted_ordered_by_recency(client: AsyncClient):
     await client.post("/completions", json={"text": "te", "completion": "st"})
     await client.post("/completions", json={"text": "te", "completion": "am"})
     resp = await client.get("/completions", params={"text": "te"})
-    data = resp.json()
-    assert data["completions"][0] == "am"
-    assert "st" in data["completions"]
+    assert resp.json()["completions"][0] == "am"
+    assert "st" in resp.json()["completions"]
 
 
 async def test_skips_llm_when_enough_accepted(client: AsyncClient):
     for i in range(5):
         await client.post("/completions", json={"text": "Go ", "completion": f"place {i}."})
-
     with patch("app.main.llm_completion") as mock:
         resp = await client.get("/completions", params={"text": "Go "})
     assert resp.status_code == 200
     mock.assert_not_called()
 
-
-# -- Validation --
 
 async def test_missing_text_422(client: AsyncClient):
     assert (await client.get("/completions")).status_code == 422

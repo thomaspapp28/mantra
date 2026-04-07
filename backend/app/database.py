@@ -1,8 +1,8 @@
+import os
+
 import aiosqlite
 
-from .config import DATABASE_PATH
-
-_db_path = DATABASE_PATH
+_db_path = os.getenv("DATABASE_URL", "completions.db").removeprefix("sqlite:///./")
 
 _SCHEMA = """\
 CREATE TABLE IF NOT EXISTS accepted_completions (
@@ -47,7 +47,6 @@ async def save_accepted(input_text: str, completion: str) -> None:
 
 
 async def get_accepted(input_text: str, limit: int = 5) -> list[str]:
-    """Return previously accepted completions, most-recent first, deduplicated."""
     conn = await _connect()
     try:
         cursor = await conn.execute(

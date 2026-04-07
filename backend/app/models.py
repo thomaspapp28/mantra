@@ -16,7 +16,3 @@ class CompletionResponse(BaseModel):
 class CompletionRequest(BaseModel):
     text: str = Field(..., min_length=1)
     completion: str = Field(..., min_length=1)
-
-
-class ErrorResponse(BaseModel):
-    detail: str
